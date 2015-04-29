@@ -6,6 +6,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -13,11 +14,19 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+
 
 public class Prime extends ActionBarActivity {
 
-    private static int SIEVE_SIZE = 1000000;
+    private static int SIEVE_SIZE;
     private static String LOG_TAG = "Sieve of Eratosthenes";
+    private static String SIEVE_FNAME = "sieve.txt";
 
     private boolean sieveDone = false;
 
@@ -29,9 +38,10 @@ public class Prime extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prime);
-        /*if (savedInstanceState == null) {
-
-        }*/
+        if (savedInstanceState == null) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            SIEVE_SIZE = Integer.parseInt(prefs.getString("sieve_size", "1000000"));
+        }
     }
 
     @Override
@@ -42,11 +52,22 @@ public class Prime extends ActionBarActivity {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         int size = Integer.parseInt(prefs.getString("sieve_size", "1000000"));
 
-        // only rebuild the sieve if the user changed the preference
-        if (size != SIEVE_SIZE) {
+        // check if the file exists
+        File file = new File(getApplicationContext().getFilesDir(), SIEVE_FNAME);
+
+        if (file.exists() && SIEVE_SIZE == size) {
+            // read file
+            new ReadSieveTask().execute();
+
+        } else {
+            // set the size
             SIEVE_SIZE = size;
 
+            // regenerate it
             generateSieve();
+
+            // write the file
+            new WriteSieveTask().execute();
         }
     }
 
@@ -116,6 +137,10 @@ public class Prime extends ActionBarActivity {
     }
 
 
+    /**
+     * Generate the sieve. This sieve is used as a look up table to determine
+     * if a number is prime
+     */
     public class GenerateSieveTask extends AsyncTask<Void, Integer, Void> {
 
         @Override
@@ -166,8 +191,6 @@ public class Prime extends ActionBarActivity {
             Toast.makeText(getApplicationContext(), "Sieve generated", Toast.LENGTH_LONG).show();
         }
 
-
-
         @Override
         protected void onProgressUpdate(Integer... values) {
             super.onProgressUpdate(values);
@@ -175,5 +198,83 @@ public class Prime extends ActionBarActivity {
             bar.setProgress(values[0]);
         }
 
+    }
+
+    /**
+     * Write the sieve to a file (filename given)
+     */
+    private class WriteSieveTask extends AsyncTask <Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+            File file = new File(getApplicationContext().getFilesDir(), SIEVE_FNAME);
+
+            try {
+                PrintWriter writer = new PrintWriter(file);
+
+                // write out the entire sieve
+                for (int i = 0; i < SIEVE_SIZE; i++) {
+                    if (sieve[i]) {
+                        writer.println("true");
+                    } else {
+                        writer.println("false");
+                    }
+                }
+
+                writer.close();
+
+            } catch (FileNotFoundException e) {
+                Log.d(LOG_TAG, "Error in WriteSieveTask: ", e);
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * Read the sieve from a file
+     */
+    private class ReadSieveTask extends AsyncTask <Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+            File file = new File(getApplicationContext().getFilesDir(), SIEVE_FNAME);
+
+            try {
+
+                // allocate and make sure it's the right size
+                sieve = new boolean[SIEVE_SIZE];
+
+                BufferedReader reader = new BufferedReader(new FileReader(file));
+
+                String temp;
+                int i = 0;
+                while (null != (temp = reader.readLine())) {
+                    sieve[i] = Boolean.parseBoolean(temp.trim());
+                    i++;
+                }
+
+                reader.close();
+
+            } catch (FileNotFoundException e) {
+                Log.d(LOG_TAG, "Sieve file does not exist: ", e);
+                e.printStackTrace();
+            } catch (IOException e) {
+                Log.d(LOG_TAG, "Unexpected IO Exception: ", e);
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+
+            sieveDone = true;
+        }
     }
 }
