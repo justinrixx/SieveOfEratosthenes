@@ -1,7 +1,10 @@
 package com.gmail.rixx.justin.sieveoferatosthenes;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -13,7 +16,7 @@ import android.widget.Toast;
 
 public class Prime extends ActionBarActivity {
 
-    private static final int SIEVE_SIZE = 1000000;
+    private static int SIEVE_SIZE = 1000000;
     private static String LOG_TAG = "Sieve of Eratosthenes";
 
     private boolean sieveDone = false;
@@ -26,7 +29,23 @@ public class Prime extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prime);
-        if (savedInstanceState == null) {
+        /*if (savedInstanceState == null) {
+
+        }*/
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // get the shared preferences to generate the correct sieve size
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        int size = Integer.parseInt(prefs.getString("sieve_size", "1000000"));
+
+        // only rebuild the sieve if the user changed the preference
+        if (size != SIEVE_SIZE) {
+            SIEVE_SIZE = size;
+
             generateSieve();
         }
     }
@@ -52,13 +71,15 @@ public class Prime extends ActionBarActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
+
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+
+            Intent i = new Intent(this, SettingsActivity.class);
+            startActivity(i);
+
             return true;
         }
 
@@ -79,6 +100,12 @@ public class Prime extends ActionBarActivity {
         }
         else {
             int toCheck = Integer.parseInt(s);
+
+            // make sure it's a valid number
+            if (toCheck >= SIEVE_SIZE) {
+                Toast.makeText(this, "Max number is " + (SIEVE_SIZE - 1), Toast.LENGTH_LONG).show();
+                return;
+            }
 
             if (sieve[toCheck]) {
                 Toast.makeText(this, "Prime", Toast.LENGTH_SHORT).show();
