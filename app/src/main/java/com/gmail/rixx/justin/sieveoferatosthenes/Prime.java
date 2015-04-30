@@ -1,5 +1,7 @@
 package com.gmail.rixx.justin.sieveoferatosthenes;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -10,6 +12,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -109,7 +112,7 @@ public class Prime extends ActionBarActivity {
 
     /**
      * Checks if the number that was input is prime
-     * @param view
+     * @param view the button pressed
      */
     public void checkPrime(View view) {
         String s = ((EditText) findViewById(R.id.edit_text_number)).getText().toString();
@@ -134,6 +137,45 @@ public class Prime extends ActionBarActivity {
                 Toast.makeText(this, "Not prime", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    /**
+     * Regenerate the sieve as per request by the user
+     * @param view the button pressed
+     */
+    public void regenerate(View view) {
+
+        // confirm the action with a dialog
+        final AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+        alert.setTitle("Confirm this action");
+        alert.setMessage("Are you sure you want to re-generate the sieve? " +
+                "This can be time-consuming and use a lot of computing resources");
+
+        // set up the positive button
+        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+
+                // regenerate it
+                generateSieve();
+
+                // write the file
+                new WriteSieveTask().execute();
+            }
+        });
+
+        // set up the negative button
+        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                // Canceled. Do nothing
+            }
+        });
+
+        AlertDialog dialog = alert.create();
+
+        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+
+        dialog.show();
     }
 
 
