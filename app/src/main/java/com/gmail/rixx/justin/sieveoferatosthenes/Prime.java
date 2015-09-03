@@ -7,7 +7,7 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,9 +24,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+public class Prime extends AppCompatActivity {
 
-public class Prime extends ActionBarActivity {
-
+    private static final String IS_FIRST_TIME = "is_first_time";
     private static int SIEVE_SIZE;
     private static String LOG_TAG = "Sieve of Eratosthenes";
     private static String SIEVE_FNAME = "sieve.txt";
@@ -41,10 +41,41 @@ public class Prime extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prime);
+
         if (savedInstanceState == null) {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
             SIEVE_SIZE = Integer.parseInt(prefs.getString("sieve_size", "1000000"));
         }
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isFirstTime = preferences.getBoolean(IS_FIRST_TIME, true);
+
+        /* If this is the first time, give the user some instructions */
+        if (isFirstTime) {
+            final AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+            alert.setTitle("Welcome");
+            alert.setMessage("This app is used to check if a number is prime very quickly. " +
+                    "Once the sieve has been generated, you can check a number for primality. The sieve only " +
+                    "has to be generated once. Enjoy!");
+
+            // set up the positive button
+            alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    // dismiss -- do nothing
+                }
+            });
+
+            AlertDialog dialog = alert.create();
+
+            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+
+            dialog.show();
+
+            // the message has been shown, don't show again
+            preferences.edit().putBoolean(IS_FIRST_TIME, false).apply();
+        }
+
     }
 
     @Override
@@ -112,6 +143,7 @@ public class Prime extends ActionBarActivity {
 
     /**
      * Checks if the number that was input is prime
+     *
      * @param view the button pressed
      */
     public void checkPrime(View view) {
@@ -121,8 +153,7 @@ public class Prime extends ActionBarActivity {
             Toast.makeText(this, "Sieve is not ready", Toast.LENGTH_LONG).show();
         } else if (s.equals("")) {
             Toast.makeText(this, "Please enter a number", Toast.LENGTH_LONG).show();
-        }
-        else {
+        } else {
             int toCheck = Integer.parseInt(s);
 
             // make sure it's a valid number
@@ -141,6 +172,7 @@ public class Prime extends ActionBarActivity {
 
     /**
      * Regenerate the sieve as per request by the user
+     *
      * @param view the button pressed
      */
     public void regenerate(View view) {
@@ -245,7 +277,7 @@ public class Prime extends ActionBarActivity {
     /**
      * Write the sieve to a file (filename given)
      */
-    private class WriteSieveTask extends AsyncTask <Void, Void, Void> {
+    private class WriteSieveTask extends AsyncTask<Void, Void, Void> {
 
         @Override
         protected Void doInBackground(Void... params) {
@@ -278,7 +310,7 @@ public class Prime extends ActionBarActivity {
     /**
      * Read the sieve from a file
      */
-    private class ReadSieveTask extends AsyncTask <Void, Void, Void> {
+    private class ReadSieveTask extends AsyncTask<Void, Void, Void> {
 
         @Override
         protected Void doInBackground(Void... params) {
